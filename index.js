@@ -1,4 +1,5 @@
-const mysql = require('mysql')
+const mysql = require('mysql');
+const apiHandler = require('apiHandler');
 
 const connection = mysql.createConnection({
     host: process.env.RDS_LAMBDA_HOSTNAME,
@@ -9,27 +10,32 @@ const connection = mysql.createConnection({
     connectionLimit: 10,
     multipleStatements: true,
     // Prevent nested sql statements
-    connectionLimit: 1000,
+
     connectTimeout: 60 * 60 * 1000,
     acquireTimeout: 60 * 60 * 60,
     timeout: 60 * 60 * 1000,
-    debug: true
-})
+    debug: true,
+    database: 'task'
+});
 
 exports.handler = async (event) => {
+    let sql = apiHandler(event)
     try {
-        const data = await new Promisse((resolve, reject) => {
-            connection.connect((err) => {
-                if (err) reject(err)
-                connection.query('CREATE DATABASE testdb', (err, result) => {
-                    if (err) {
-                        console.log("Error " + err)
-                        reject(err)
-                    }
-                    resolve(result)
-                })
+
+        const data = await new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) {
+                    console.log("Error " + err)
+                    reject(err)
+                }
+                resolve(result)
             })
         })
+        return {
+            statusCode: 200,
+            body: JSON.stringify(data)
+
+        }
     } catch (err) {
         return {
             statusCode: 400,
